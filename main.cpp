@@ -25,6 +25,8 @@ static std::string get_word_counts(std::string &in);
 static bool compareWordFreq(std::pair<int, std::string> a,
 							std::pair<int, std::string> b);
 static void check(int num, Test &test);
+static void update_word_dictionary(std::unordered_map<std::string, int> &count,
+								   std::string &line);
 
 int main(int argc, char *argv[])
 {
@@ -51,19 +53,12 @@ int main(int argc, char *argv[])
 }
 
 /*
- * get_word_counts() - count word frequencies in a string.
- *
- * in: string
- * out: string describing word frequencies
- *
- * Words can contain symbols 'a'-'z' and 'A'-'Z',
- * everything else is treated as a space.
+ * update_word_dictionary() - add words from specified line to frequency map
  */
-std::string
-get_word_counts(std::string &in)
+void
+update_word_dictionary(std::unordered_map<std::string, int> &count,
+					   std::string &in)
 {
-	std::vector<std::pair<int, std::string>> result;
-	std::unordered_map<std::string, int> count;
 	std::string word;
 	std::stringstream ss;
 
@@ -89,16 +84,43 @@ get_word_counts(std::string &in)
 				count[word] += 1;
 		}
 	}
+}
+
+std::vector<std::pair<int, std::string>>
+get_sorted_word_frequencies(std::unordered_map<std::string, int> dict)
+{
+	std::vector<std::pair<int, std::string>> result;
 
 	// Put words with their frequencies into a vector for sorting
-	for (auto i = count.begin(); i != count.end(); i++)
+	for (auto i = dict.begin(); i != dict.end(); i++)
 		result.push_back(std::make_pair(i->second, i->first));
 
 	// Sort by word frequencies (desc) and by alphabet (asc)
 	sort(result.begin(), result.end(), compareWordFreq);
 
+	return result;
+}
+
+/*
+ * get_word_counts() - count word frequencies in a string.
+ *
+ * in: string
+ * out: string describing word frequencies
+ *
+ * Words can contain symbols 'a'-'z' and 'A'-'Z',
+ * everything else is treated as a space.
+ */
+std::string
+get_word_counts(std::string &in)
+{
+	std::vector<std::pair<int, std::string>> result;
+	std::unordered_map<std::string, int> dict;
+	std::stringstream ss;
+
+	update_word_dictionary(dict, in);
+	result = get_sorted_word_frequencies(dict);
+
 	// Print out the sorted results
-	ss = std::stringstream("");
 	for (auto i = result.begin(); i != result.end(); i++)
 		ss << i->first << " " << i->second << std::endl;
 
