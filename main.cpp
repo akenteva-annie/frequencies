@@ -29,6 +29,8 @@ static bool compareWordFreq(std::pair<int, std::string> a,
 static void check(int num, Test &test);
 static void update_word_dictionary(std::unordered_map<std::string, int> &count,
 								   std::string &line);
+static std::vector<std::pair<int, std::string>>
+			get_sorted_word_frequencies(std::unordered_map<std::string, int> m);
 
 int main(int argc, char *argv[])
 {
@@ -45,55 +47,6 @@ int main(int argc, char *argv[])
 		get_word_counts(argv[1], argv[2]);
 
 	return 0;
-}
-
-/*
- * update_word_dictionary() - add words from specified line to frequency map
- */
-void
-update_word_dictionary(std::unordered_map<std::string, int> &count,
-					   std::string &in)
-{
-	std::string word;
-	std::stringstream ss;
-
-	// Preprocess: make letters small and change other symbols to spaces
-	for(std::string::size_type i = 0; i < in.size(); ++i)
-	{
-		if (in[i] >= 'a' && in[i] <= 'z')
-			continue;
-		else if (in[i] >= 'A' && in[i] <= 'Z')
-			in[i] = 'a' + (in[i] - 'A');
-		else
-			in[i] = ' ';
-	}
-
-	// Iterate through words and count their frequencies
-	ss = std::stringstream(in);
-	while(getline(ss, word, ' ')) {
-		if (word != "")
-		{
-			if (!count[word])
-				count[word] = 1;
-			else
-				count[word] += 1;
-		}
-	}
-}
-
-std::vector<std::pair<int, std::string>>
-get_sorted_word_frequencies(std::unordered_map<std::string, int> dict)
-{
-	std::vector<std::pair<int, std::string>> result;
-
-	// Put words with their frequencies into a vector for sorting
-	for (auto i = dict.begin(); i != dict.end(); i++)
-		result.push_back(std::make_pair(i->second, i->first));
-
-	// Sort by word frequencies (desc) and by alphabet (asc)
-	sort(result.begin(), result.end(), compareWordFreq);
-
-	return result;
 }
 
 /*
@@ -134,6 +87,61 @@ get_word_counts(std::string in_filename, std::string out_filename)
 
 	infile.close();
 	outfile.close();
+}
+
+/*
+ * update_word_dictionary() - add words from specified line to frequency map
+ */
+void
+update_word_dictionary(std::unordered_map<std::string, int> &count,
+					   std::string &in)
+{
+	std::string word;
+	std::stringstream ss;
+
+	// Preprocess: make letters small and change other symbols to spaces
+	for(std::string::size_type i = 0; i < in.size(); ++i)
+	{
+		if (in[i] >= 'a' && in[i] <= 'z')
+			continue;
+		else if (in[i] >= 'A' && in[i] <= 'Z')
+			in[i] = 'a' + (in[i] - 'A');
+		else
+			in[i] = ' ';
+	}
+
+	// Iterate through words and count their frequencies
+	ss = std::stringstream(in);
+	while(getline(ss, word, ' ')) {
+		if (word != "")
+		{
+			if (!count[word])
+				count[word] = 1;
+			else
+				count[word] += 1;
+		}
+	}
+}
+
+/*
+ * get_sorted_word_frequencies()
+ *
+ * in: a map of words with their frequencies
+ * out: a sorted vector of words with their frequencies
+ */
+std::vector<std::pair<int, std::string>>
+get_sorted_word_frequencies(std::unordered_map<std::string, int> m)
+{
+	std::vector<std::pair<int, std::string>> result;
+
+	// Put words with their frequencies into a vector for sorting
+	for (auto i = m.begin(); i != m.end(); i++)
+		result.push_back(std::make_pair(i->second, i->first));
+
+	// Sort by word frequencies (desc) and by alphabet (asc)
+	sort(result.begin(), result.end(), compareWordFreq);
+
+	return result;
 }
 
 /*
