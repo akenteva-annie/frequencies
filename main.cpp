@@ -2,10 +2,11 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <unordered_map>
 #include <vector>
 
-#define SHOW_RESULTS false
+#define DEBUG false
 
 struct Test
 {
@@ -21,7 +22,8 @@ struct Test
 };
 
 static void test_word_counts();
-static std::string get_word_counts(std::string &in);
+static void get_word_counts(std::string in_filename,
+							std::string out_filename);
 static bool compareWordFreq(std::pair<int, std::string> a,
 							std::pair<int, std::string> b);
 static void check(int num, Test &test);
@@ -33,21 +35,14 @@ int main(int argc, char *argv[])
 	std::string str;
 
 	// Run tests if requested
-	if (argc >= 2 && (std::string(argv[1]).compare("test") == 0))
+	if (argc == 2 && (std::string(argv[1]).compare("test") == 0))
 	{
 		test_word_counts();
 		return 0;
 	}
 
-	while (getline(std::cin, str))
-	{
-		if (str.compare("\\q") == 0)
-			// Exit the program on \q
-			break;
-		else
-			// Otherwise, keep processing lines
-			std::cout << get_word_counts(str);
-	}
+	if (argc == 3)
+		get_word_counts(argv[1], argv[2]);
 
 	return 0;
 }
@@ -110,21 +105,35 @@ get_sorted_word_frequencies(std::unordered_map<std::string, int> dict)
  * Words can contain symbols 'a'-'z' and 'A'-'Z',
  * everything else is treated as a space.
  */
-std::string
-get_word_counts(std::string &in)
+void
+get_word_counts(std::string in_filename, std::string out_filename)
 {
 	std::vector<std::pair<int, std::string>> result;
 	std::unordered_map<std::string, int> dict;
-	std::stringstream ss;
+	std::ifstream infile(in_filename);
+	std::ofstream outfile(out_filename);
+	std::string line;
 
-	update_word_dictionary(dict, in);
+	if (!infile)
+		return;
+
+	if (!outfile)
+	{
+		infile.close();
+		return;
+	}
+
+	while (getline(infile, line))
+		update_word_dictionary(dict, line);
+
 	result = get_sorted_word_frequencies(dict);
 
 	// Print out the sorted results
 	for (auto i = result.begin(); i != result.end(); i++)
-		ss << i->first << " " << i->second << std::endl;
+		outfile << i->first << " " << i->second << std::endl;
 
-	return ss.str();
+	infile.close();
+	outfile.close();
 }
 
 /*
@@ -167,6 +176,13 @@ test_word_counts()
 			 "1 aa\n"
 			 "1 bb\n"
 			),
+		Test("Newlines don't mess anything up",
+			 "\na\na\n b\nb\n bb\n\naa\n\n",
+			 "2 a\n"
+			 "2 b\n"
+			 "1 aa\n"
+			 "1 bb\n"
+			),
 		Test("No big letters in output",
 			 "HeLLO hello",
 			 "2 hello\n"
@@ -199,19 +215,47 @@ void
 check(int num, Test &test)
 {
 	bool ok;
-	std::string got;
-	std::cout << "======= test " << num << ": "<< test.name << " ...... ";
+	const char *filename_in = "in.txt";
+	const char *filename_out = "out.txt";
+	std::ofstream infile(filename_in);
+	std::stringstream got;
 
-	got = get_word_counts(test.in);
-	ok = (got.compare(test.expected) == 0);
+	// Write info into the input file
+	if (infile.is_open())
+	{
+		infile << test.in;
+		infile.close();
+	}
+
+	// Call the tested function
+	get_word_counts(filename_in, filename_out);
+
+	// Read results from the output file
+	std::ifstream outfile(filename_out);
+	if (outfile.is_open())
+	{
+		while (outfile >> got.rdbuf());
+		outfile.close();
+	}
+
+	// Print test results
+	std::cout << "======= test " << num << ": "<< test.name << " ...... ";
+	ok = (test.expected.compare(got.str()) == 0);
 	if (ok)
 		std::cout << "ok" << std::endl;
 	else
 		std::cout << " failed:" << std::endl;
 
-	if (!ok || SHOW_RESULTS)
+	if (!ok || DEBUG)
 	{
 		std::cout << "=> expected:" << std::endl << test.expected << std::endl;
-		std::cout << "=> got:" << std::endl << got << std::endl;
+		std::cout << "=> got:" << std::endl << got.str() << std::endl;
 	}
+
+	// Delete files that aren't needed anymore
+	if (remove(filename_in) != 0)
+		perror("Error deleting input file");
+
+	if (remove(filename_out) != 0)
+		perror("Error deleting output file");
 }
